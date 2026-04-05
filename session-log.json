@@ -23,5 +23,15 @@
     "timestamp": "2026-04-05T20:11:12.849Z",
     "role": "assistant",
     "content": "Phase 2 complete: Built /identify page with name input (max 20 chars, no special chars), 8 color avatar picker with initials preview, localStorage persistence under ludo_identity key, auto-redirect to /lobby if identity exists, TopBar component showing avatar + name + Change link, and addDuplicateSuffix utility for Phase 3 room join logic."
+  },
+  {
+    "timestamp": "2026-04-05T20:26:02.350Z",
+    "role": "user",
+    "content": "Phase 3 — ROOM SYSTEM: Build lobby, create-room, join-room, and /room/[code] waiting room with Supabase Realtime."
+  },
+  {
+    "timestamp": "2026-04-05T20:26:02.358Z",
+    "role": "assistant",
+    "content": "Phase 3 complete: Built /lobby with Create Room and Join Room buttons, /create-room with 2/3/4 player toggle, /join-room with 6-char code input (supports ?code= query param from share links), /room/[code] waiting room with live player list via Supabase Realtime, room code copy/share, manager Start Game button, leave room functionality, and duplicate name handling on join."
   }
 ]
