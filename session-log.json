@@ -63,5 +63,10 @@
     "timestamp": "2026-04-05T20:51:28.720Z",
     "role": "assistant",
     "content": "Phase 6 complete: Added Web Audio API sound effects (dice roll, piece move) with mute toggle in top bar. Wake Lock API keeps screen awake during active games. PWA manifest.json + service worker for home screen install. Loading skeleton components. Viewport meta prevents zoom. Touch-first with 44px min tap targets throughout."
+  },
+  {
+    "timestamp": "2026-04-05T20:52:03.055Z",
+    "role": "assistant",
+    "content": "Created placeholder files for future phases: /app/leaderboard/page.tsx, /app/team-game/page.tsx, /lib/supabase-stats.ts"
   }
 ]
