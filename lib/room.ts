@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import { type PlayerIdentity, addDuplicateSuffix } from './identity';
+import { initializeGameState } from './game-state';
 
 function generateRoomCode(): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -93,6 +94,34 @@ export async function leaveRoom(roomId: string, guestId: string) {
 }
 
 export async function startGame(roomId: string) {
+  // Fetch players in join order (clockwise from manager)
+  const { data: players } = await supabase
+    .from('room_players')
+    .select('*')
+    .eq('room_id', roomId)
+    .order('joined_at', { ascending: true });
+
+  if (!players || players.length < 2) {
+    throw new Error('Not enough players');
+  }
+
+  // Initialize game state
+  const state = initializeGameState(
+    roomId,
+    players.map((p) => ({
+      guestId: p.guest_id,
+      displayName: p.display_name,
+    }))
+  );
+
+  // Create game state record
+  await supabase.from('game_states').upsert({
+    room_id: roomId,
+    state,
+    updated_at: new Date().toISOString(),
+  });
+
+  // Update room status to playing
   const { error } = await supabase
     .from('rooms')
     .update({ status: 'playing' })

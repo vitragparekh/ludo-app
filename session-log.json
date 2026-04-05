@@ -43,5 +43,15 @@
     "timestamp": "2026-04-05T20:43:08.078Z",
     "role": "assistant",
     "content": "Phase 4 complete: Built programmatic SVG Ludo board with 15x15 grid, 52 main track tiles, 4 home columns, 4 home bases. Pieces render with player colors, stacking offsets for same-tile. Selection ring + pulsing glow for valid moves. Dice with shake animation. Turn indicator banner. All game state synced via Supabase Realtime."
+  },
+  {
+    "timestamp": "2026-04-05T20:47:52.355Z",
+    "role": "user",
+    "content": "Phase 5 — GAME LOGIC: Full Ludo rules — entry on 6, clockwise movement, capture, safe tiles, home column, exact center roll, win detection, server-side validation."
+  },
+  {
+    "timestamp": "2026-04-05T20:47:52.359Z",
+    "role": "assistant",
+    "content": "Phase 5 complete: All Ludo rules implemented. Pieces enter on 6, move clockwise, capture opponents (except on safe tiles), enter home column after full circuit, need exact roll for center. Server-side move validation via /api/move route prevents cheating. Winner screen with Play Again. Game state initialized on room start by manager."
   }
 ]

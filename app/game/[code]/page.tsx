@@ -8,13 +8,10 @@ import { type GameState, type PieceState } from '@/lib/game-state';
 import {
   createGameState,
   fetchGameState,
-  updateGameState,
-  rollDice,
 } from '@/lib/game-actions';
 import {
   ENTRY_TILES,
   HOME_ENTRY_TILES,
-  SAFE_TILES,
   type PlayerColor,
   PLAYER_COLORS,
 } from '@/lib/board-data';
@@ -156,46 +153,31 @@ export default function GamePage() {
   }
 
   async function handleRoll() {
-    if (!isMyTurn || !gameState || gameState.diceRolled) return;
+    if (!isMyTurn || !gameState || gameState.diceRolled || !identity) return;
 
     setRolling(true);
-    const value = rollDice();
-
-    const newState: GameState = {
-      ...gameState,
-      diceValue: value,
-      diceRolled: true,
-      turnPhase: 'move',
-    };
-
-    // Check if player has any valid moves
-    const currentP = newState.players[newState.currentPlayerIndex];
-    const hasValidMoves = currentP.pieces.some((piece) =>
-      getValidMove(piece, currentP.color, value)
-    );
-
-    if (!hasValidMoves) {
-      // No valid moves — skip to next turn after a short delay
-      newState.turnPhase = 'waiting';
-      await updateGameState(gameState.roomId, newState);
-      setGameState(newState);
-      setRolling(false);
-
-      setTimeout(async () => {
-        const skipState = advanceTurn(newState);
-        await updateGameState(gameState.roomId, skipState);
-        setGameState(skipState);
-      }, 1500);
-      return;
+    try {
+      const res = await fetch('/api/move', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          roomId: gameState.roomId,
+          guestId: identity.guestId,
+          action: 'roll',
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.state) {
+        setGameState(data.state);
+      }
+    } catch {
+      // Will sync from realtime
     }
-
-    await updateGameState(gameState.roomId, newState);
-    setGameState(newState);
     setRolling(false);
   }
 
   async function handlePieceClick(color: PlayerColor, pieceIndex: number) {
-    if (!isMyTurn || !gameState || !gameState.diceRolled) return;
+    if (!isMyTurn || !gameState || !gameState.diceRolled || !identity) return;
 
     const move = validMoves.find(
       (m) => m.pieceColor === color && m.pieceIndex === pieceIndex
@@ -204,10 +186,24 @@ export default function GamePage() {
 
     setSelectedPiece({ color, index: pieceIndex });
 
-    // Execute the move
-    const newState = executeMove(gameState, color, pieceIndex, move);
-    await updateGameState(gameState.roomId, newState);
-    setGameState(newState);
+    try {
+      const res = await fetch('/api/move', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          roomId: gameState.roomId,
+          guestId: identity.guestId,
+          pieceIndex,
+          action: 'move',
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.state) {
+        setGameState(data.state);
+      }
+    } catch {
+      // Will sync from realtime
+    }
     setSelectedPiece(null);
   }
 
@@ -292,7 +288,8 @@ export default function GamePage() {
 }
 
 // ────────────────────────────────────────────────
-// Move logic helpers
+// Client-side valid move calculation (for UI highlighting only)
+// Actual move validation happens server-side in /api/move
 // ────────────────────────────────────────────────
 
 function getValidMove(
@@ -303,142 +300,30 @@ function getValidMove(
   if (piece.location === 'finished') return null;
 
   if (piece.location === 'home') {
-    if (dice === 6) {
-      return { toTileId: ENTRY_TILES[color] };
-    }
+    if (dice === 6) return { toTileId: ENTRY_TILES[color] };
     return null;
   }
 
   if (piece.location === 'track' && piece.trackPosition !== undefined) {
-    const entryTile = HOME_ENTRY_TILES[color];
-    const startTile = ENTRY_TILES[color];
-    const pos = piece.trackPosition;
+    const homeEntry = HOME_ENTRY_TILES[color];
+    let current = piece.trackPosition;
 
-    // Calculate distance from start
-    const distFromStart = (pos - startTile + 52) % 52;
-    const newDistFromStart = distFromStart + dice;
-
-    if (newDistFromStart > 51 + 6) {
-      // Overshoot — can't move
-      return null;
-    }
-
-    if (newDistFromStart > 51) {
-      // Enters home column
-      const colIdx = newDistFromStart - 52;
-      if (colIdx >= 0 && colIdx <= 5) {
-        return { toColumnIndex: colIdx };
-      }
-      return null;
-    }
-
-    // Check if we'd pass through the home entry and need to go into column
-    const newPos = (pos + dice) % 52;
-
-    // Check if we cross the home entry tile
-    const crossesEntry = doesCrossEntry(pos, dice, entryTile);
-    if (crossesEntry) {
-      const stepsToEntry = (entryTile - pos + 52) % 52;
-      const remaining = dice - stepsToEntry;
-      if (remaining > 0 && remaining <= 6) {
-        const colIdx = remaining - 1;
-        return { toColumnIndex: colIdx };
+    for (let step = 1; step <= dice; step++) {
+      current = (current + 1) % 52;
+      if (current === (homeEntry + 1) % 52) {
+        const remaining = dice - step;
+        if (remaining <= 5) return { toColumnIndex: remaining };
+        return null;
       }
     }
-
-    return { toTileId: newPos };
+    return { toTileId: current };
   }
 
   if (piece.location === 'column' && piece.columnPosition !== undefined) {
     const newColIdx = piece.columnPosition + dice;
-    if (newColIdx <= 5) {
-      return { toColumnIndex: newColIdx };
-    }
-    return null; // Overshoot
+    if (newColIdx <= 5) return { toColumnIndex: newColIdx };
+    return null;
   }
 
   return null;
-}
-
-function doesCrossEntry(
-  fromTile: number,
-  dice: number,
-  entryTile: number
-): boolean {
-  for (let i = 1; i <= dice; i++) {
-    if ((fromTile + i) % 52 === (entryTile + 1) % 52) {
-      // We've gone past the entry tile
-      return true;
-    }
-  }
-  return false;
-}
-
-function executeMove(
-  state: GameState,
-  color: PlayerColor,
-  pieceIndex: number,
-  move: { toTileId?: number; toColumnIndex?: number }
-): GameState {
-  const newState = JSON.parse(JSON.stringify(state)) as GameState;
-  const playerIdx = newState.players.findIndex((p) => p.color === color);
-  const player = newState.players[playerIdx];
-  const piece = player.pieces[pieceIndex];
-
-  // Execute move
-  if (move.toColumnIndex !== undefined) {
-    piece.location = move.toColumnIndex === 5 ? 'finished' : 'column';
-    piece.columnPosition = move.toColumnIndex;
-    piece.trackPosition = undefined;
-  } else if (move.toTileId !== undefined) {
-    piece.location = 'track';
-    piece.trackPosition = move.toTileId;
-    piece.columnPosition = undefined;
-
-    // Check for capture
-    if (!SAFE_TILES.includes(move.toTileId)) {
-      newState.players.forEach((otherPlayer) => {
-        if (otherPlayer.color === color) return;
-        otherPlayer.pieces.forEach((otherPiece) => {
-          if (
-            otherPiece.location === 'track' &&
-            otherPiece.trackPosition === move.toTileId
-          ) {
-            otherPiece.location = 'home';
-            otherPiece.trackPosition = undefined;
-          }
-        });
-      });
-    }
-  }
-
-  // Check for win
-  const allFinished = player.pieces.every((p) => p.location === 'finished');
-  if (allFinished) {
-    newState.winner = player.guestId;
-    return newState;
-  }
-
-  // Extra turn on 6
-  if (state.diceValue === 6) {
-    newState.diceRolled = false;
-    newState.diceValue = null;
-    newState.turnPhase = 'roll';
-    newState.extraTurn = true;
-  } else {
-    return advanceTurn(newState);
-  }
-
-  return newState;
-}
-
-function advanceTurn(state: GameState): GameState {
-  const newState = { ...state };
-  newState.currentPlayerIndex =
-    (state.currentPlayerIndex + 1) % state.players.length;
-  newState.diceValue = null;
-  newState.diceRolled = false;
-  newState.turnPhase = 'roll';
-  newState.extraTurn = false;
-  return newState;
 }
