@@ -18,6 +18,9 @@ import {
 import { LudoBoard } from '@/components/LudoBoard';
 import { Dice } from '@/components/Dice';
 import { TurnIndicator } from '@/components/TurnIndicator';
+import { playDiceRoll, playMove } from '@/lib/sounds';
+import { useWakeLock } from '@/lib/use-wake-lock';
+import { BoardSkeleton } from '@/components/LoadingSkeleton';
 
 export default function GamePage() {
   const router = useRouter();
@@ -33,6 +36,9 @@ export default function GamePage() {
   const [rolling, setRolling] = useState(false);
 
   const identity = getIdentity();
+
+  // Keep screen awake during active game
+  useWakeLock(!loading && !!gameState && !gameState.winner);
 
   const loadGame = useCallback(async () => {
     const { data: room } = await supabase
@@ -105,11 +111,7 @@ export default function GamePage() {
   }, [gameState?.roomId]);
 
   if (loading || !gameState) {
-    return (
-      <div className="min-h-[100dvh] flex items-center justify-center -mt-14">
-        <div className="text-slate-400 text-lg">Loading game...</div>
-      </div>
-    );
+    return <BoardSkeleton />;
   }
 
   const currentPlayer = gameState.players[gameState.currentPlayerIndex];
@@ -156,6 +158,7 @@ export default function GamePage() {
     if (!isMyTurn || !gameState || gameState.diceRolled || !identity) return;
 
     setRolling(true);
+    playDiceRoll();
     try {
       const res = await fetch('/api/move', {
         method: 'POST',
@@ -185,6 +188,7 @@ export default function GamePage() {
     if (!move) return;
 
     setSelectedPiece({ color, index: pieceIndex });
+    playMove();
 
     try {
       const res = await fetch('/api/move', {

@@ -53,5 +53,15 @@
     "timestamp": "2026-04-05T20:47:52.359Z",
     "role": "assistant",
     "content": "Phase 5 complete: All Ludo rules implemented. Pieces enter on 6, move clockwise, capture opponents (except on safe tiles), enter home column after full circuit, need exact roll for center. Server-side move validation via /api/move route prevents cheating. Winner screen with Play Again. Game state initialized on room start by manager."
+  },
+  {
+    "timestamp": "2026-04-05T20:51:28.717Z",
+    "role": "user",
+    "content": "Phase 6 — POLISH & MOBILE UX: Sound effects, Wake Lock, PWA, mobile layout, loading skeletons."
+  },
+  {
+    "timestamp": "2026-04-05T20:51:28.720Z",
+    "role": "assistant",
+    "content": "Phase 6 complete: Added Web Audio API sound effects (dice roll, piece move) with mute toggle in top bar. Wake Lock API keeps screen awake during active games. PWA manifest.json + service worker for home screen install. Loading skeleton components. Viewport meta prevents zoom. Touch-first with 44px min tap targets throughout."
   }
 ]

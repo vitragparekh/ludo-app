@@ -1,0 +1,8 @@
+<svg xmlns='http://www.w3.org/2000/svg' width='512' height='512' viewBox='0 0 512 512'>
+  <rect width='512' height='512' rx='76.8' fill='#0f172a'/>
+  <text x='50%' y='55%' text-anchor='middle' dominant-baseline='middle' font-size='256' font-family='Arial' font-weight='bold' fill='white'>L</text>
+  <circle cx='358.4' cy='153.6' r='40.96' fill='#E63946'/>
+  <circle cx='409.6' cy='358.4' r='40.96' fill='#2A9D8F'/>
+  <circle cx='102.4' cy='358.4' r='40.96' fill='#457B9D'/>
+  <circle cx='153.6' cy='153.6' r='40.96' fill='#F4A261'/>
+</svg>
